@@ -403,10 +403,12 @@ export class FixedCell extends Component<FixedProps, CellState> {
 export interface NotebookRootProps {
   userInfo?: db.UserInfo;
   nbId?: string;
+  profile?: string;
 }
 
 export interface NotebookRootState {
   nbId?: string;
+  profile?: string;
 }
 
 export class NotebookRoot extends Component<NotebookRootProps,
@@ -422,7 +424,15 @@ export class NotebookRoot extends Component<NotebookRootProps,
       nbId = matches ? matches[1] : null;
     }
 
-    this.state = { nbId };
+    let profile;
+    if (this.props.profile) {
+      nbId = this.props.profile;
+    } else {
+      const matches = window.location.search.match(/profile=(\w+)/);
+      profile = matches ? matches[1] : null;
+    }
+
+    this.state = { nbId, profile };
   }
 
   render() {
@@ -431,6 +441,11 @@ export class NotebookRoot extends Component<NotebookRootProps,
       body = h(Notebook, {
         nbId: this.state.nbId,
         userInfo: this.props.userInfo,
+      });
+    } else if (this.state.profile) {
+      body = h(Profile, {
+        profile: this.state.profile,
+        userInfo: this.props.userInfo
       });
     } else {
       body = h(MostRecent, null);
@@ -505,6 +520,64 @@ export class MostRecent extends Component<any, MostRecentState> {
   }
 }
 
+export interface ProfileState {
+  latest: db.NbInfo[];
+  profile: string;
+}
+
+export class Profile extends Component<any, ProfileState> {
+  async componentWillMount() {
+    // Only query firebase when in the browser.
+    // This is to avoiding calling into firebase during static HTML generation.
+    if (IS_WEB) {
+      const latest = await db.active.queryProfile(this.props.profile);
+      this.setState({ latest });
+    }
+  }
+
+  render() {
+    if (!this.state.latest) {
+      return h(Loading, null);
+    }
+    const doc = this.state.latest[0].doc;
+    const notebookList = this.state.latest.map(info => {
+      const snippit = db.getInputCodes(info.doc).join("\n").slice(0, 100);
+      const href = nbUrl(info.nbId);
+      return h("a", { href },
+        h("li", null,
+          h("div", { class: "code-snippit" }, snippit),
+          notebookBlurb(info.doc, false)
+        )
+      );
+    });
+    const profileBlurb = h("div", { "class": "blurb" }, null, [
+      h("div", { "class": "blurb-avatar" },
+        h(Avatar, { userInfo: doc.owner }),
+      ),
+      h("div", { "class": "blurb-name" },
+        h("p", { "class": "displayName" }, doc.owner.displayName),
+      ),
+      h("div", { "class": "date-created" },
+        h("p", { "class": "created" },
+          `Most Recent Update ${fmtDate(doc.updated)}.`),
+      ),
+    ]);
+
+    return h("div", null,
+      h("div", {"class": "profile-blurb"}, profileBlurb),
+      h("div", { "class": "most-recent" },
+        h("div", {"class": "most-recent-header"},
+          h("div", {"class": "most-recent-header-title"},
+            h("h2", null,
+              doc.owner.displayName + "'s Recently Updated Notebooks")
+          ),
+        ),
+        h("ol", null, ...notebookList),
+      )
+    );
+  }
+}
+
 export interface NotebookProps {
   nbId: string;
   onReady?: () => void;
@@ -567,11 +640,11 @@ export class Notebook extends Component<NotebookProps, NotebookState> {
     doc.title = this.state.typedTitle;
     this.setState({ ...doc, editingTitle: false });
     this.update(doc);
-   }
+  }
 
   async onTypedTitle(event) {
-     this.setState({ typedTitle: event.target.value });
-   }
+    this.setState({ typedTitle: event.target.value });
+  }
 
   async onDelete(i) {
     const doc = this.state.doc;
@@ -696,12 +769,17 @@ function notebookBlurb(doc: db.NotebookDoc, showDates = true): JSX.Element {
       h("p", { "class": "updated" }, `Updated ${fmtDate(doc.updated)}.`),
     ),
   ];
+  const profileUrl = window.location.origin + "/notebook/?profile=" +
+                     doc.owner.uid;
   return h("div", { "class": "blurb" }, null, [
     h("div", { "class": "blurb-avatar" },
       h(Avatar, { userInfo: doc.owner }),
     ),
     h("div", { "class": "blurb-name" },
-      h("p", { "class": "displayName" }, doc.owner.displayName),
+      h("a", {
+        "class": "displayName",
+        "href": profileUrl
+      }, doc.owner.displayName),
     ),
     ...dates
   ]);

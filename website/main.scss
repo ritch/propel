@@ -478,6 +478,26 @@ header {
   }
 }
 
+.blurb {
+  background-color: #fff;
+  box-shadow: inset 0 1px 0 #d8d8d8;
+  font-size: 1.2rem;
+  letter-spacing: 0.5px;
+  display: flex;
+  margin-top: 8px;
+
+  img {
+    margin-right: $size0;
+  }
+
+  a {
+    font-size: $size1;
+    line-height: $size2;
+    color: $textColor;
+    margin: $size1;
+  }
+}
+
 .propel-logo {
   display: flex;
   flex-direction: row;
@@ -610,19 +630,6 @@ header {
   @include buttonHover;
 }
 
-.blurb {
-  background-color: #fff;
-  box-shadow: inset 0 1px 0 #d8d8d8;
-  font-size: 1.2rem;
-  letter-spacing: 0.5px;
-  display: flex;
-  margin-top: 8px;
-
-  img {
-    margin-right: $size0;
-  }
-}
-
 .notebook-container {
   max-width: 960px;
   margin: 0 auto;
@@ -632,6 +639,24 @@ header {
     box-shadow: inset 0 -1px 0 $borderColor;
     background-color: #fff;
     margin-bottom: 16px;
+    font-size: 18px;
+  }
+}
+
+.profile-blurb {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 8px;
+
+  .blurb {
+    box-shadow: inset 0 -1px 0 $borderColor;
+    background-color: #fff;
+    margin-bottom: 16px;
+  }
+
+  p {
+    font-size: 18px;
+    font-weight: 100;
   }
 }
 
